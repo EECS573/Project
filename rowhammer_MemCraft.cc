@@ -28,16 +28,16 @@
 #include <unistd.h>
 
 const size_t mem_size = 1 << 30;
-const int toggles = 540000;
+//const int toggles = 540000;
 const int cache_size_M = 3;
 const int cache_num_bytes = cache_size_M * 1024 * 1024;
 const int cache_num_64ints = cache_num_bytes / 8;
-const int cache_arr_size = 2 * cache_num_ints;
+const int cache_arr_size = 20 * cache_num_64ints;
 
 char *g_mem;
 
 char *pick_addr() {
-  size_t offset = (rand() << 12) % cache_num_bytes;
+  size_t offset = (rand() << 12) % (mem_size - 20 * cache_num_bytes);
   return g_mem + offset;
 }
 
@@ -64,42 +64,20 @@ class Timer {
 };
 
 static void toggle(int iterations, int addr_count) {
-  Timer timer;
-  for (int j = 0; j < iterations; j++) {
-    uint32_t *addrs[addr_count];
-    for (int a = 0; a < addr_count; a++)
-      addrs[a] = (uint32_t *) pick_addr();
-
-    uint32_t sum = 0;
-    for (int i = 0; i < toggles; i++) {
-      for (int a = 0; a < addr_count; a++)
-        sum += *addrs[a] + 1;
-      for (int a = 0; a < addr_count; a++)
-        asm volatile("clflush (%0)" : : "r" (addrs[a]) : "memory");
+  uint64_t* addr = (uint64_t*) pick_addr();
+  uint64_t sum = 0;
+  for (int k = 0; k < iterations; ++k) {  
+    for (int i = 0; i < cache_arr_size; ++i) {
+      sum += addr[i] + 1;
     }
-
+    
     // Sanity check.  We don't expect this to fail, because reading
     // these rows refreshes them.
     if (sum != 0) {
-      printf("error: sum=%x\n", sum);
+      printf("error: sum=%" PRIu64 "\n", sum);
       exit(1);
     }
   }
-
-  // Print statistics derived from the time and number of accesses.
-  double time_taken = timer.get_diff();
-  printf("  Took %.1f ms per address set\n",
-         time_taken / iterations * 1e3);
-  printf("  Took %g sec in total for %i address sets\n",
-         time_taken, iterations);
-  int memory_accesses = iterations * addr_count * toggles;
-  printf("  Took %.3f nanosec per memory access (for %i memory accesses)\n",
-         time_taken / memory_accesses * 1e9,
-         memory_accesses);
-  int refresh_period_ms = 64;
-  printf("  This gives %i accesses per address per %i ms refresh period\n",
-         (int) (refresh_period_ms * 1e-3 * iterations * toggles / time_taken),
-         refresh_period_ms);
 }
 
 void main_prog() {
@@ -114,7 +92,7 @@ void main_prog() {
   int iter = 0;
   for (;;) {
     printf("Iteration %i (after %.2fs)\n", iter++, t.get_diff());
-    toggle(10, 8);
+    toggle(100, 8);
 
     Timer check_timer;
     uint64_t *end = (uint64_t *) (g_mem + mem_size);
