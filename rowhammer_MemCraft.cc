@@ -29,7 +29,7 @@
 
 const size_t mem_size = 1 << 30;
 //const int toggles = 540000;
-const int cache_size_M = 3;
+const int cache_size_M = 8;
 const int cache_num_bytes = cache_size_M * 1024 * 1024;
 const int cache_num_64ints = cache_num_bytes / 8;
 const int cache_arr_size = 20 * cache_num_64ints;
