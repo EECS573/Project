@@ -18,6 +18,7 @@ set -eu
 
 cflags="-g -Wall -Werror -O2 -msse4.1"
 
+g++ -g -Wall -Werror -O2 -fopenmp rowhammer_multithread.cc -o rowhammer_multithread
 g++ $cflags rowhammer_test.cc -o rowhammer_test
 g++ $cflags rowhammer_NTLoad.cc -o rowhammer_NTLoad
 g++ $cflags rowhammer_MemCraft.cc -o rowhammer_MemCraft
